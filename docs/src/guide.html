@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>AQL QA · Песочница</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 16mm 16mm 18mm; }
+  :root { --ink: #111318; --soft: #5b6170; --line: #dfe2e8; --blue: #1f4fff; --blue-bg: #eef2ff; --red: #d92d20; --red-bg: #fff1f0; --green: #0f8a4f; --green-bg: #ecfbf3; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; font: 400 10.5pt/1.55 Manrope, sans-serif; color: var(--ink); background: #fff; }
+  h1, h2, h3 { font-family: Unbounded, sans-serif; letter-spacing: -0.01em; line-height: 1.15; margin: 0; }
+  h2 { font-size: 17pt; margin: 0 0 4mm; padding-top: 3mm; border-top: 2px solid var(--ink); }
+  h3 { font-size: 11.5pt; margin: 6mm 0 2mm; }
+  p { margin: 0 0 2.6mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 6mm; }
+  li { margin-bottom: 1.2mm; }
+  a { color: var(--blue); text-decoration: none; }
+  code, .mono { font-family: 'JetBrains Mono', monospace; font-size: 9pt; background: #f3f4f7; padding: 0.3mm 1.2mm; border-radius: 1mm; }
+  b, strong { font-weight: 800; }
+  .page { break-after: page; }
+  .page:last-child { break-after: auto; }
+  section { break-inside: avoid-page; }
+
+  .cover { height: 260mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover .kicker { font: 600 9pt Manrope; letter-spacing: 0.18em; text-transform: uppercase; color: var(--soft); border-bottom: 2px solid var(--ink); padding-bottom: 3mm; }
+  .cover h1 { font-size: 40pt; margin: 18mm 0 6mm; }
+  .cover h1 span { color: var(--blue); }
+  .cover .lead { font-size: 13pt; max-width: 150mm; color: var(--ink); }
+  .cover .toc { border-top: 1px solid var(--line); padding-top: 4mm; columns: 2; column-gap: 10mm; font-size: 10pt; }
+  .cover .toc div { padding: 1mm 0; border-bottom: 1px solid var(--line); break-inside: avoid; display: flex; justify-content: space-between; }
+  .cover .toc b { color: var(--blue); font-family: Unbounded; font-weight: 500; }
+  .cover .foot { font-size: 9pt; color: var(--soft); }
+
+  .box { border-left: 3px solid var(--blue); background: var(--blue-bg); padding: 3mm 4mm; margin: 3mm 0 4mm; break-inside: avoid; }
+  .box.red { border-color: var(--red); background: var(--red-bg); }
+  .box.green { border-color: var(--green); background: var(--green-bg); }
+  .box .t { font-weight: 800; display: block; margin-bottom: 1mm; }
+  .box p:last-child, .box ul:last-child, .box ol:last-child { margin-bottom: 0; }
+
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps > li { counter-increment: s; position: relative; padding: 0 0 3mm 11mm; margin: 0; break-inside: avoid; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: -0.5mm; width: 7.5mm; height: 7.5mm; border-radius: 50%; background: var(--ink); color: #fff; font: 700 9pt/7.5mm Unbounded; text-align: center; }
+
+  .term { background: #0f1117; color: #d7dbe4; font: 400 8.4pt/1.5 'JetBrains Mono', monospace; padding: 4mm 5mm; border-radius: 2mm; margin: 3mm 0 4mm; white-space: pre; break-inside: avoid; }
+  .term .ok { color: #4ade80; } .term .st { color: #7aa2ff; } .term .dim { color: #7a8193; } .term .err { color: #ff6b6b; }
+
+  figure { margin: 3mm 0 5mm; break-inside: avoid; }
+  figure img { width: 100%; border: 1px solid var(--line); border-radius: 1.5mm; display: block; }
+  figcaption { font-size: 8.8pt; color: var(--soft); margin-top: 1.5mm; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 9.2pt; margin: 2mm 0 4mm; }
+  th { text-align: left; font: 600 8pt Manrope; letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); border-bottom: 2px solid var(--ink); padding: 1.5mm 2mm 1.5mm 0; }
+  td { border-bottom: 1px solid var(--line); padding: 2mm 2mm 2mm 0; vertical-align: top; }
+  tr { break-inside: avoid; }
+  td:first-child { font-weight: 800; white-space: nowrap; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .qa { break-inside: avoid; border-bottom: 1px solid var(--line); padding: 2.4mm 0; }
+  .qa .q { font-weight: 800; margin-bottom: 0.8mm; }
+  .qa .q::before { content: '?'; display: inline-block; width: 5mm; height: 5mm; margin-right: 2mm; border-radius: 50%; background: var(--blue); color: #fff; font: 700 7.5pt/5mm Unbounded; text-align: center; vertical-align: 0.4mm; }
+  .qa p { margin: 0 0 0 7mm; }
+  .tag { display: inline-block; font: 600 7.5pt Manrope; letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid var(--ink); padding: 0.4mm 1.6mm; border-radius: 1mm; margin-right: 1mm; }
+  .glossary td:first-child { width: 33mm; }
+</style>
+</head>
+<body>
+
+<!-- ОБЛОЖКА -->
+<div class="page cover">
+  <div>
+    <div class="kicker">AQL Academy · QA-команда · ноябрь 2026</div>
+    <h1>Песочница<br>для <span>тестировщика</span></h1>
+    <p class="lead">Место, где можно ломать, искать баги и дыры в безопасности — и за это ничего не будет.
+      Здесь: что это, зачем, как поставить за 10 минут, как играть и что делать, если ничего не работает.</p>
+  </div>
+  <div>
+    <div class="toc">
+      <div><span>Что это и зачем</span><b>2</b></div>
+      <div><span>Три правила</span><b>2</b></div>
+      <div><span>Словарик</span><b>3</b></div>
+      <div><span>Установка на Windows</span><b>4</b></div>
+      <div><span>Установка на Mac</span><b>5</b></div>
+      <div><span>Как играть в Juice Shop</span><b>6</b></div>
+      <div><span>DevTools и как думать</span><b>8</b></div>
+      <div><span>План на первую неделю</span><b>9</b></div>
+      <div><span>Учебные сайты</span><b>10</b></div>
+      <div><span>Если что-то не работает</span><b>11</b></div>
+      <div><span>Как отчитаться лиду</span><b>13</b></div>
+    </div>
+    <p class="foot" style="margin-top:6mm">Комплект: github.com/PolyAtomicIon/aql-sandbox · Juice Shop 20.4.0 — проект OWASP, лицензия MIT.</p>
+  </div>
+</div>
+
+<!-- ЧТО ЭТО -->
+<div class="page">
+  <h2>Что это и зачем</h2>
+  <p>Тестировщик (QA) — человек, который находит проблемы <b>раньше</b> пользователя. Кнопка не нажимается,
+    форма принимает дату «31 февраля», чужой человек видит твои оценки — всё это должен поймать QA.</p>
+  <p>Чтобы научиться, нужно много пробовать: вводить странное в формы, ломать корзину, подсматривать запросы
+    в DevTools. Делать это на настоящем портале AQL нельзя — там учатся живые люди, и любая «проверка»
+    может что-то сломать по-настоящему. Поэтому у нас есть песочница — две вещи:</p>
+
+  <div class="two">
+    <div class="box">
+      <span class="t">🧃 OWASP Juice Shop</span>
+      <p>Интернет-магазин соков, в котором <b>специально спрятано больше сотни уязвимостей</b>. Ты ищешь —
+        он сам засчитывает: найдена дыра → зелёная плашка «You successfully solved a challenge».</p>
+      <p>Работает <b>у тебя на компьютере</b>, адрес <code>localhost:3000</code>. Никому не мешаешь,
+        ничего не сломаешь.</p>
+    </div>
+    <div class="box">
+      <span class="t">🌐 Учебные сайты</span>
+      <p>Сайты, сделанные для тренировки тестировщиков: магазины с багами, формы, учебный банк, учебные API.</p>
+      <p>Ставить ничего не надо — открываешь в браузере. Список на стр. 10.</p>
+    </div>
+  </div>
+
+  <p><b>Почему Juice Shop.</b> Его делает OWASP — мировая некоммерческая организация по безопасности веба.
+    На нём учатся в университетах и на курсах по всему миру. Задания разбиты по темам, которые встречаются
+    в настоящих сайтах каждый день: инъекции, XSS, сломанный доступ, утечка данных.</p>
+
+  <h2 style="margin-top:8mm">Три правила</h2>
+  <div class="box red">
+    <span class="t">Прочитай. Это не формальность.</span>
+    <ol>
+      <li><b>Атакуй только <code>localhost:3000</code> и сайты из списка на стр. 10.</b> Портал AQL, сайты школы,
+        чужие сайты, Wi-Fi академии — нельзя. Взлом чужой системы — это уголовное дело, даже если ты
+        «просто посмотрел» и ничего не менял.</li>
+      <li><b>Никаких настоящих данных.</b> Не вводи свой пароль, почту, телефон, номер карты. Только
+        выдуманное: <code>test@test.com</code>, <code>Qwerty123!</code>.</li>
+      <li><b>Не нагружай учебные сайты</b> скриптами и тысячами запросов — ими пользуется весь мир.</li>
+    </ol>
+  </div>
+  <p>Если <b>случайно</b> нашёл баг или дыру на портале AQL — молодец, это и есть работа QA. Не пытайся её
+    «развить» и проверить глубже: сразу опиши, что сделал, и отправь лиду.</p>
+</div>
+
+<!-- СЛОВАРИК -->
+<div class="page">
+  <h2>Словарик</h2>
+  <p>Слова, которые встретятся дальше. Не надо учить — просто возвращайся сюда.</p>
+  <table class="glossary">
+    <tr><th>Слово</th><th>Что значит</th></tr>
+    <tr><td>Баг</td><td>Программа делает не то, что должна. Кнопка не работает, цена посчитана неверно.</td></tr>
+    <tr><td>Уязвимость</td><td>Баг, через который можно сделать то, что нельзя: войти без пароля, увидеть чужое, украсть данные.</td></tr>
+    <tr><td>localhost</td><td>«Этот компьютер». <code>localhost:3000</code> — сайт, который работает у тебя, а не в интернете.</td></tr>
+    <tr><td>Порт</td><td>Номер «двери» программы на компьютере. Juice Shop слушает дверь <code>3000</code>.</td></tr>
+    <tr><td>Терминал</td><td>Окно, где команды пишут текстом. На Windows — «Командная строка», на Mac — «Терминал».</td></tr>
+    <tr><td>Node.js</td><td>Программа, которая запускает код на JavaScript вне браузера. На ней работает Juice Shop.</td></tr>
+    <tr><td>DevTools</td><td>Инструменты разработчика внутри браузера. Открываются клавишей <code>F12</code> (Mac: <code>⌥⌘I</code>). Главный инструмент QA.</td></tr>
+    <tr><td>Запрос (request)</td><td>Сообщение, которое браузер отправляет серверу: «дай список товаров», «вот мой логин». Видно во вкладке Network.</td></tr>
+    <tr><td>API</td><td>«Окошко» сервера для программ: не страницы, а данные в формате JSON.</td></tr>
+    <tr><td>Cookie</td><td>Записка, которую сайт хранит в твоём браузере: кто ты, что в корзине, твой прогресс.</td></tr>
+    <tr><td>XSS</td><td>Когда сайт показывает твой текст как код. Вводишь в поиск кусок HTML — и он выполняется на странице.</td></tr>
+    <tr><td>SQL-инъекция</td><td>Когда ввод в форму попадает прямо в запрос к базе данных и меняет его смысл. Классика: вход без пароля.</td></tr>
+    <tr><td>Баг-репорт</td><td>Описание бага, по которому другой человек его повторит: шаги, что ожидал, что получил, скриншот.</td></tr>
+  </table>
+</div>
+
+<!-- WINDOWS -->
+<div class="page">
+  <h2>Установка на Windows</h2>
+  <p>Нужно: Windows 10 или 11, около 1 ГБ места, интернет на первый запуск. Займёт 10 минут.</p>
+  <ol class="steps">
+    <li><b>Поставь Node.js.</b> Открой <a href="https://nodejs.org">nodejs.org</a>, нажми большую кнопку
+      <b>LTS</b> (не «Current»). Открой скачанный <code>.msi</code> и жми <b>Next</b> до конца. Галочки не трогай.
+      Если спросит про «Tools for Native Modules» — галочку можно не ставить.</li>
+    <li><b>Скачай комплект.</b> Открой <a href="https://github.com/PolyAtomicIon/aql-sandbox">github.com/PolyAtomicIon/aql-sandbox</a>
+      → зелёная кнопка <b>Code</b> → <b>Download ZIP</b>.</li>
+    <li><b>Распакуй.</b> Правый клик по скачанному <code>aql-sandbox-main.zip</code> → <b>Извлечь всё</b> → <b>Извлечь</b>.
+      Важно именно распаковать, а не открыть архив двойным кликом.</li>
+    <li><b>Запусти.</b> В распакованной папке дважды кликни <b>start-windows.bat</b>.</li>
+    <li><b>Если появилось синее окно «Windows защитила ваш компьютер»</b> — нажми <b>Подробнее</b> →
+      <b>Выполнить в любом случае</b>. Так Windows реагирует на любой скачанный файл.</li>
+    <li><b>Жди.</b> Первый раз скрипт скачает Juice Shop (~135 МБ) и распакует. Потом сам откроется браузер.</li>
+  </ol>
+  <p>Чёрное окно будет выглядеть примерно так:</p>
+  <div class="term"><span class="dim">========================================</span>
+  AQL QA - OWASP Juice Shop 20.4.0
+<span class="dim">========================================</span>
+<span class="st">[1/4] Проверяю компьютер</span>
+      Node.js v24.11.0 - ок
+<span class="st">[2/4] Скачиваю Juice Shop, около 135 МБ, только в первый раз</span>
+      Скачано и проверено - ок
+<span class="st">[3/4] Распаковываю, это может занять пару минут</span>
+      Установлено в C:\Users\Aruzhan\aql-juice-shop\20.4.0-node24
+<span class="st">[4/4] Запускаю Juice Shop</span>
+  <span class="ok">ПОКА ЭТО ОКНО ОТКРЫТО - JUICE SHOP РАБОТАЕТ.</span></div>
+  <div class="box green">
+    <span class="t">Главное про чёрное окно</span>
+    <p>Пока оно открыто — Juice Shop работает. Закрыл — магазин выключился. Завтра просто снова дважды кликни
+      <b>start-windows.bat</b>: второй раз всё запустится за 10–20 секунд и без интернета.</p>
+  </div>
+</div>
+
+<!-- MAC -->
+<div class="page">
+  <h2>Установка на Mac</h2>
+  <p>Нужно: Mac на чипе <b>M1, M2, M3 или M4</b>, около 1 ГБ места, интернет на первый запуск.</p>
+  <div class="box">
+    <span class="t">Как узнать, какой у тебя Mac</span>
+    <p>Меню с яблоком слева сверху → <b>Об этом Mac</b>. Написано «Чип Apple M…» — подходит. Написано
+      «Процессор Intel» — готовой сборки нет, используй онлайн-версию <a href="https://demo.owasp-juice.shop">demo.owasp-juice.shop</a>
+      (см. стр. 11).</p>
+  </div>
+  <ol class="steps">
+    <li><b>Поставь Node.js.</b> Открой <a href="https://nodejs.org">nodejs.org</a>, нажми кнопку <b>LTS</b>,
+      открой скачанный <code>.pkg</code> и жми <b>Продолжить</b> до конца. Попросит пароль от Mac — это нормально.</li>
+    <li><b>Открой Терминал.</b> Нажми <code>⌘ + пробел</code>, набери «Терминал», нажми Enter.</li>
+    <li><b>Вставь одну строку и нажми Enter:</b>
+      <div class="term" style="white-space:pre-wrap">bash &lt;(curl -fsSL https://raw.githubusercontent.com/PolyAtomicIon/aql-sandbox/main/start-mac.command)</div>
+      Копируй точно, со всеми скобками. Удобнее всего — из README на GitHub, там есть кнопка «копировать».</li>
+    <li><b>Жди.</b> Первый раз скрипт скачает Juice Shop (~140 МБ). Потом сам откроется браузер.</li>
+  </ol>
+  <div class="term"><span class="dim">========================================</span>
+  AQL QA · OWASP Juice Shop 20.4.0
+<span class="dim">========================================</span>
+<span class="st">▶ Проверяю компьютер</span>
+<span class="ok">✓ Mac на Apple Silicon (M1/M2/M3/M4)</span>
+<span class="ok">✓ Node.js v24.18.0</span>
+<span class="st">▶ Скачиваю Juice Shop (~140 МБ, один раз)</span>
+<span class="ok">✓ Скачано и проверено</span>
+<span class="st">▶ Распаковываю (до минуты)</span>
+<span class="ok">✓ Установлено в /Users/aruzhan/aql-juice-shop/…</span>
+<span class="st">▶ Запускаю Juice Shop</span>
+Пока это окно открыто — Juice Shop работает.</div>
+  <p><b>Второй способ</b> (если не любишь Терминал): скачай комплект через <b>Code → Download ZIP</b>,
+    открой папку и сделай <b>правый клик → Открыть</b> по файлу <b>start-mac.command</b>. Если macOS пишет, что
+    не может проверить разработчика: <b>Системные настройки → Конфиденциальность и безопасность</b> → внизу
+    <b>«Всё равно открыть»</b>.</p>
+  <div class="box green">
+    <span class="t">Окно Терминала не закрывай</span>
+    <p>Пока оно открыто — Juice Shop работает. Завтра — та же строка в Терминале, запуск за 10 секунд.</p>
+  </div>
+</div>
+
+<!-- КАК ИГРАТЬ -->
+<div class="page">
+  <h2>Как играть в Juice Shop</h2>
+  <p>Браузер откроет <code>http://localhost:3000</code>. Не открылся — набери адрес сам. Именно <code>http</code>, не <code>https</code>.</p>
+  <figure>
+    <img src="../img/01-welcome.png" alt="">
+    <figcaption>Первый экран. Закрой приветствие кнопкой <b>Dismiss</b> и плашку cookies кнопкой <b>Me want it!</b></figcaption>
+  </figure>
+  <figure>
+    <img src="../img/02-shop.png" alt="">
+    <figcaption>Это и есть магазин: товары, корзина (Your Basket), вход (Account), поиск. Выглядит как обычный сайт — но в нём полно дыр.</figcaption>
+  </figure>
+</div>
+
+<div class="page">
+  <h3 style="margin-top:0">Первое задание — найти табло</h3>
+  <p>Все задания собраны на странице <b>Score Board</b>, но в меню её нет — её спрятали. Найти её и есть первое
+    задание. Подсказка: сайт знает адреса всех своих страниц, и их можно подсмотреть в DevTools
+    (<code>F12</code> → вкладка <b>Sources</b> → файл <code>main.js</code> → поиск <code>Ctrl+F</code> по слову <code>score</code>).
+    Не нашёл за 15 минут — спроси лида, это нормально.</p>
+  <figure>
+    <img src="../img/03-score-board.png" alt="">
+    <figcaption>Табло. Сверху — прогресс. Звёзды ★1…★6 — сложность. Синие кнопки — темы. Ниже — карточки заданий: зелёная точка и полоса = решено.</figcaption>
+  </figure>
+  <table>
+    <tr><th>Значок на карточке</th><th>Что это</th></tr>
+    <tr><td>★</td><td>Сложность: от одной до шести звёзд. <b>Начинай с одной звезды.</b></td></tr>
+    <tr><td>🎓 шапочка</td><td>Пошаговый тренер (Hacking Instructor): ведёт за руку прямо по сайту. Есть у 13 простых заданий — пройди их первыми.</td></tr>
+    <tr><td>💡 0/3</td><td>Подсказки. Нажал — открылась следующая. Цифра — сколько открыто из скольких.</td></tr>
+    <tr><td>&lt;&gt;</td><td>Задание на код: найти строчку с дырой в исходнике. Это уровень посложнее — потом.</td></tr>
+  </table>
+  <div class="box green">
+    <span class="t">Как понять, что засчитано</span>
+    <p>Сверху выскакивает зелёная плашка <b>«You successfully solved a challenge: …»</b>, а карточка на табло
+      становится зелёной. Прогресс <b>сохраняется в браузере сам</b>: выключил Juice Shop, включил завтра —
+      решённое на месте. Только заходи тем же браузером и не чисти cookies.</p>
+  </div>
+</div>
+
+<div class="page">
+  <p style="margin-bottom:5mm"><b>Язык.</b> Глобус справа сверху → можно выбрать «Pусский», но переведено меньше половины. Советуем
+    оставить English и переводить непонятное переводчиком: в работе всё равно всё на английском.</p>
+
+  <h3>DevTools — главный инструмент</h3>
+  <p>Открывается клавишей <code>F12</code> (Windows) или <code>⌥ + ⌘ + I</code> (Mac). Удобнее держать его справа или снизу.</p>
+  <table>
+    <tr><th>Вкладка</th><th>Зачем QA</th></tr>
+    <tr><td>Network</td><td>Какие запросы уходят на сервер и что он отвечает. Здесь видно больше, чем на экране: скрытые поля, чужие данные, коды ошибок 4xx и 5xx.</td></tr>
+    <tr><td>Console</td><td>Ошибки JavaScript (красные строки). Для баг-репорта — делай скриншот.</td></tr>
+    <tr><td>Elements</td><td>HTML страницы. Можно найти спрятанные кнопки и поля, временно поменять текст.</td></tr>
+    <tr><td>Application</td><td>Cookies и хранилище браузера: здесь лежат токен входа, язык, прогресс.</td></tr>
+    <tr><td>Sources</td><td>Файлы сайта (JavaScript). Здесь прячут адреса страниц и забытые комментарии.</td></tr>
+  </table>
+  <h3>Как думать, когда ищешь дыру</h3>
+  <ul>
+    <li><b>Что будет, если ввести не то, что ждут?</b> Пустоту, 1000 символов, отрицательное число, кавычку <code>'</code>, кусок HTML.</li>
+    <li><b>Что видно в Network, но не видно на экране?</b> Сервер часто отдаёт больше, чем показывает страница.</li>
+    <li><b>Что будет, если поменять число в адресе?</b> <code>/basket/1</code> → <code>/basket/2</code> — это уже чужая корзина?</li>
+    <li><b>Что сайт делает при ошибке?</b> Красивая страница — или куча технических подробностей?</li>
+  </ul>
+  <div class="box">
+    <span class="t">Застрял?</span>
+    <p>1) Прочитай описание задания ещё раз, медленно. 2) Открой подсказку 💡. 3) Попробуй 20 минут сам.
+      4) Спроси команду. Есть и официальная книга с решениями «Pwning OWASP Juice Shop» — но если подсматривать
+      сразу, ты ничему не научишься.</p>
+  </div>
+</div>
+
+<!-- ПЛАН -->
+<div class="page">
+  <h2>План на первую неделю</h2>
+  <table>
+    <tr><th>День</th><th>Что сделать</th><th>Результат</th></tr>
+    <tr><td>1</td><td>Поставить Juice Shop. Погулять по магазину как покупатель: регистрация, корзина, отзыв. Найти Score Board.</td><td>Табло открыто, 1 задание</td></tr>
+    <tr><td>2</td><td>Пройти задания с 🎓 шапочкой по порядку: DOM XSS, Bonus Payload, Privacy Policy.</td><td>4–5 заданий</td></tr>
+    <tr><td>3</td><td>Остальные ★1: Error Handling, Confidential Document, Zero Stars, Repetitive Registration, Exposed Metrics, Missing Encoding, Outdated Allowlist, Mass Dispel.</td><td>все ★1</td></tr>
+    <tr><td>4</td><td>Учебный сайт <a href="https://www.saucedemo.com">saucedemo.com</a>: войти как <code>standard_user</code> и как <code>problem_user</code>, записать все отличия.</td><td>5+ баг-репортов</td></tr>
+    <tr><td>5</td><td>Шапочки дальше: Reflected XSS, Login Admin, Admin Section, View Basket. Первые ★2.</td><td>первые ★2</td></tr>
+  </table>
+  <p>Задания из таблицы — это имена на карточках табло. Найти карточку проще всего поиском (Search) на табло.</p>
+
+  <h3>Как написать баг-репорт</h3>
+  <p>Хороший баг-репорт — такой, по которому другой человек повторит баг <b>без вопросов к тебе</b>.</p>
+  <div class="term" style="white-space:pre-wrap"><span class="st">Название:</span> У всех товаров в каталоге одна и та же картинка
+<span class="st">Где:</span> saucedemo.com, пользователь problem_user, Chrome, Windows 11
+<span class="st">Шаги:</span>
+  1. Открыть saucedemo.com
+  2. Войти: логин problem_user, пароль secret_sauce
+  3. Посмотреть на каталог товаров
+<span class="st">Ожидал:</span> у каждого товара своя фотография (как у standard_user)
+<span class="st">Получил:</span> у всех шести товаров одинаковая картинка
+<span class="st">Насколько плохо:</span> средне — покупатель не видит, что покупает
+<span class="st">Скриншот:</span> приложен</div>
+  <p style="font-size:9pt;color:var(--soft)">Это реальный баг saucedemo — проверь сам. Свои баг-репорты пиши по той же схеме.</p>
+</div>
+
+<!-- САЙТЫ -->
+<div class="page">
+  <h2>Учебные сайты</h2>
+  <p>Ничего ставить не надо — открывай в браузере. Сайты общие для всех людей в мире: данные на них могут
+    меняться и пропадать, это нормально. Не нагружай их скриптами.</p>
+  <table>
+    <tr><th>Сайт</th><th>Что там</th><th>Что тренировать</th></tr>
+    <tr><td><a href="https://practicesoftwaretesting.com">practicesoftwaretesting.com</a></td><td>Магазин инструментов «Toolshop», есть версии с багами</td><td>Чек-листы, тест-кейсы, баг-репорты</td></tr>
+    <tr><td><a href="https://www.saucedemo.com">saucedemo.com</a></td><td>Маленький магазин; логины написаны прямо на странице входа</td><td>Вход, корзина; <code>problem_user</code> полон багов</td></tr>
+    <tr><td><a href="https://the-internet.herokuapp.com">the-internet.herokuapp.com</a></td><td>Сборник «трудных» элементов: попапы, загрузки, iframe</td><td>Проверка отдельных элементов</td></tr>
+    <tr><td><a href="https://demoqa.com">demoqa.com</a></td><td>Формы, таблицы, виджеты</td><td>Граничные значения, валидация</td></tr>
+    <tr><td><a href="https://automationexercise.com">automationexercise.com</a></td><td>Полный магазин + готовый список тест-кейсов</td><td>Регистрация, заказ, свои кейсы против готовых</td></tr>
+    <tr><td><a href="https://parabank.parasoft.com/parabank/index.htm">parabank.parasoft.com</a></td><td>Учебный «банк»</td><td>Регистрация, переводы, баги в деньгах</td></tr>
+    <tr><td><a href="https://buggy.justtestit.org">buggy.justtestit.org</a></td><td>Рейтинг машин, специально полон багов</td><td>Свободный поиск багов</td></tr>
+    <tr><td><a href="https://restful-booker.herokuapp.com/apidoc/index.html">restful-booker</a></td><td>API бронирования отелей</td><td>Postman: GET / POST / PUT / DELETE, токены</td></tr>
+    <tr><td><a href="https://petstore.swagger.io">petstore.swagger.io</a></td><td>API зоомагазина с документацией Swagger</td><td>Читать документацию API, слать запросы со страницы</td></tr>
+    <tr><td><a href="https://reqres.in">reqres.in</a></td><td>Простой учебный API</td><td>Первые запросы, коды ответов</td></tr>
+  </table>
+  <div class="box red">
+    <span class="t">Только чтение и формы — не атаки</span>
+    <p>На учебных сайтах тренируй ручное тестирование и API. Атаки (XSS, инъекции, перебор паролей) —
+      только в своём Juice Shop на <code>localhost:3000</code>.</p>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="page">
+  <h2>Если что-то не работает</h2>
+  <p>Сначала найди свой вопрос здесь. Не нашёл — сделай <b>скриншот всего экрана с ошибкой</b> и отправь лиду.
+    «Не работает» без скриншота — не вопрос.</p>
+
+  <div class="qa"><div class="q">Это вирус? Это взлом?</div><p>Нет. Juice Shop — официальный учебный проект OWASP. Он «дырявый» нарочно, но дыры только внутри него самого. Скрипт скачивает его с официальной страницы на GitHub и проверяет контрольную сумму.</p></div>
+  <div class="qa"><div class="q">Антивирус ругается или удалил файлы.</div><p>Внутри Juice Shop есть примеры «вредных» строк для заданий — некоторые антивирусы на них реагируют. Это ложная тревога. Не отключай антивирус сам — напиши лиду.</p></div>
+  <div class="qa"><div class="q">«node не является внутренней или внешней командой» / «command not found: node».</div><p>Node.js не установлен или установлен только что. Поставь (шаг 1), <b>закрой все окна</b> и запусти снова. Не помогло — перезагрузи компьютер.</p></div>
+  <div class="qa"><div class="q">«Нужен Node.js версии 22, 24 или 26».</div><p>Стоит старый Node.js. Скачай LTS с nodejs.org и установи поверх — старая версия заменится.</p></div>
+  <div class="qa"><div class="q">Windows: «Windows защитила ваш компьютер».</div><p><b>Подробнее</b> → <b>Выполнить в любом случае</b>.</p></div>
+  <div class="qa"><div class="q">Mac: «не удаётся проверить разработчика».</div><p>Используй способ с Терминалом (стр. 5) — там этого окна нет. Или: Системные настройки → Конфиденциальность и безопасность → «Всё равно открыть».</p></div>
+  <div class="qa"><div class="q">У меня Mac на Intel / слабый ноутбук / ничего не ставится.</div><p>Онлайн-версия: <a href="https://demo.owasp-juice.shop">demo.owasp-juice.shop</a> — тот же магазин без установки. Минус: она общая для всех в интернете и иногда перезапускается, прогресс может пропасть.</p></div>
+  <div class="qa"><div class="q">Окно открылось и сразу закрылось.</div><p>Windows: открой папку с файлом, в адресной строке папки напиши <code>cmd</code> и нажми Enter. В окне набери <code>start-windows.bat</code> и Enter — теперь ошибка останется на экране. Сделай скриншот.</p></div>
+  <div class="qa"><div class="q">«Порт 3000 занят».</div><p>Juice Shop уже работает в другом окне (тогда скрипт просто откроет браузер) — или порт держит другая программа, например твой проект на React. Закрой её или перезагрузи компьютер.</p></div>
+  <div class="qa"><div class="q">Браузер не открылся сам.</div><p>Набери вручную: <code>http://localhost:3000</code>.</p></div>
+</div>
+
+<div class="page">
+  <div class="qa"><div class="q">«Не удаётся получить доступ к сайту» на localhost:3000.</div><p>Чёрное окно закрыто — Juice Shop не работает. Запусти скрипт ещё раз и подожди 10–20 секунд.</p></div>
+  <div class="qa"><div class="q">«Не скачалось» / «контрольная сумма не совпала».</div><p>Плохой интернет — просто запусти ещё раз. Если не помогает на Wi-Fi академии — попробуй дома или с телефона.</p></div>
+  <div class="qa"><div class="q">Пропал прогресс.</div><p>Ты зашёл другим браузером, в режиме инкогнито или почистил cookies. Прогресс живёт в браузере. Вернись в свой обычный браузер.</p></div>
+  <div class="qa"><div class="q">Хочу начать с нуля.</div><p>Открой Juice Shop в окне инкогнито — это чистый лист. Обычный браузер сохранит старый прогресс.</p></div>
+  <div class="qa"><div class="q">Как выключить?</div><p>Закрой чёрное окно (или нажми в нём <code>Ctrl + C</code>).</p></div>
+  <div class="qa"><div class="q">Как удалить совсем?</div><p>Удали папку <code>aql-juice-shop</code> в своей домашней папке: Windows — <code>C:\Users\ТвоёИмя\aql-juice-shop</code>, Mac — <code>~/aql-juice-shop</code>. Node.js можно оставить, он пригодится.</p></div>
+  <div class="qa"><div class="q">Нужен ли интернет?</div><p>Для Juice Shop — только в первый раз. Учебным сайтам — всегда.</p></div>
+  <div class="qa"><div class="q">Можно ли так же «проверить» портал AQL?</div><p><b>Нет.</b> Портал — живая система с данными людей. Случайно нашёл баг — опиши и отправь лиду, не копай глубже.</p></div>
+  <div class="qa"><div class="q">Можно ли поставить на телефон?</div><p>Нет, только компьютер. На телефоне можно открывать учебные сайты.</p></div>
+  <div class="qa"><div class="q">Почему на английском?</div><p>Почти всё в IT на английском: ошибки, документация, инструменты. Juice Shop — хорошая тренировка. Переводчик в браузере — нормально.</p></div>
+
+</div>
+
+<div class="page">
+  <h2>Как отчитаться лиду</h2>
+  <p>В конце недели отправь в чат команды:</p>
+  <ol>
+    <li><b>Скриншот табло</b> Juice Shop — верхняя часть, где видно «N / 188 Challenges Solved» и звёзды.</li>
+    <li><b>Одно задание, которым гордишься:</b> как нашёл, сколько времени заняло, что понял.</li>
+    <li><b>Баг-репорты</b> с учебных сайтов — по шаблону со стр. 9.</li>
+    <li><b>Где застрял</b> — честно. Это не минус, это то, с чем тебе помогут.</li>
+  </ol>
+  <div class="box green">
+    <span class="t">Главное</span>
+    <p>Цель не «решить всё». Цель — научиться думать как тестировщик: замечать, где программа может
+      ошибиться, проверять это и понятно описывать. Каждое решённое задание — это навык, который потом
+      пригодится на портале AQL.</p>
+  </div>
+</div>
+
+</body>
+</html>
