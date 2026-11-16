@@ -27,20 +27,28 @@ jobs:
     env:
       AQL_JUICE_DIR: ${{ matrix.dir }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Первый запуск start-windows.bat
         shell: pwsh
         run: |
-          Start-Process cmd.exe -ArgumentList '/c', 'start-windows.bat < NUL' -NoNewWindow `
+          $p = Start-Process cmd.exe -ArgumentList '/c', 'start-windows.bat < NUL' -NoNewWindow -PassThru `
             -RedirectStandardOutput out.txt -RedirectStandardError err.txt
-          $ok = $false
-          for ($i = 0; $i -lt 600; $i++) {
-            try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://localhost:3000/rest/admin/application-version | Out-Null; $ok = $true; break }
-            catch { Start-Sleep -Seconds 1 }
+          $ok = $false; $shown = 0
+          for ($i = 0; $i -lt 900; $i++) {
+            try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://localhost:3000/rest/admin/application-version | Out-Null; $ok = $true; break } catch {}
+            if ($i % 15 -eq 0 -and (Test-Path out.txt)) {
+              $lines = @(Get-Content out.txt -Encoding utf8)
+              if ($lines.Count -gt $shown) { $lines[$shown..($lines.Count - 1)] | ForEach-Object { Write-Output "  [$i s] $_" }; $shown = $lines.Count }
+            }
+            if ($p.HasExited) { Write-Output "start-windows.bat завершился с кодом $($p.ExitCode) до запуска Juice Shop"; break }
+            Start-Sleep -Seconds 1
           }
-          Get-Content out.txt -Encoding utf8
-          if (-not $ok) { Get-Content err.txt -Encoding utf8; Write-Output "::error::Juice Shop не поднялся за 10 минут"; exit 1 }
+          Write-Output "----- весь вывод -----"; Get-Content out.txt -Encoding utf8
+          Write-Output "----- stderr -----"; Get-Content err.txt -Encoding utf8 -ErrorAction SilentlyContinue
+          $dir = if ($env:AQL_JUICE_DIR) { $env:AQL_JUICE_DIR } else { 'C:\aql-juice-shop' }
+          Write-Output "----- $dir -----"; Get-ChildItem $dir -ErrorAction SilentlyContinue | Format-Table Name, Length -AutoSize | Out-String | Write-Output
+          if (-not $ok) { Write-Output "::error::Juice Shop не поднялся"; exit 1 }
           Write-Output "::notice title=Windows${{ matrix.label }}::Juice Shop поднялся за $i с"
 
       - name: Juice Shop засчитывает задания
@@ -76,7 +84,7 @@ jobs:
           - os: macos-15-intel
             label: Intel
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Первый запуск start-mac.command
         run: |

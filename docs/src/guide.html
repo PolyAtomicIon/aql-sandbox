@@ -90,7 +90,7 @@
       <div><span>Если что-то не работает</span><b>11</b></div>
       <div><span>Как отчитаться лиду</span><b>13</b></div>
     </div>
-    <p class="foot" style="margin-top:6mm">Комплект: github.com/PolyAtomicIon/aql-sandbox · Juice Shop 20.4.0 — проект OWASP, лицензия MIT.</p>
+    <p class="foot" style="margin-top:6mm">Комплект: github.com/PolyAtomicIon/aql-sandbox · Juice Shop 20.4.0 — проект OWASP, лицензия MIT. Скрипты проверяются на Windows, Mac M и Mac Intel.</p>
   </div>
 </div>
 
@@ -163,11 +163,8 @@
 <!-- WINDOWS -->
 <div class="page">
   <h2>Установка на Windows</h2>
-  <p>Нужно: Windows 10 или 11, около 1 ГБ места, интернет на первый запуск. Займёт 10 минут.</p>
+  <p>Нужно: Windows 10 или 11, около 1 ГБ места, интернет на первый запуск. <b>Больше ничего ставить не надо</b> — скрипт сам скачает всё нужное в папку <code>C:\aql-juice-shop</code> и ничего не меняет в системе. Займёт 5–10 минут.</p>
   <ol class="steps">
-    <li><b>Поставь Node.js.</b> Открой <a href="https://nodejs.org">nodejs.org</a>, нажми большую кнопку
-      <b>LTS</b> (не «Current»). Открой скачанный <code>.msi</code> и жми <b>Next</b> до конца. Галочки не трогай.
-      Если спросит про «Tools for Native Modules» — галочку можно не ставить.</li>
     <li><b>Скачай комплект.</b> Открой <a href="https://github.com/PolyAtomicIon/aql-sandbox">github.com/PolyAtomicIon/aql-sandbox</a>
       → зелёная кнопка <b>Code</b> → <b>Download ZIP</b>.</li>
     <li><b>Распакуй.</b> Правый клик по скачанному <code>aql-sandbox-main.zip</code> → <b>Извлечь всё</b> → <b>Извлечь</b>.
@@ -175,18 +172,19 @@
     <li><b>Запусти.</b> В распакованной папке дважды кликни <b>start-windows.bat</b>.</li>
     <li><b>Если появилось синее окно «Windows защитила ваш компьютер»</b> — нажми <b>Подробнее</b> →
       <b>Выполнить в любом случае</b>. Так Windows реагирует на любой скачанный файл.</li>
-    <li><b>Жди.</b> Первый раз скрипт скачает Juice Shop (~135 МБ) и распакует. Потом сам откроется браузер.</li>
+    <li><b>Жди.</b> Первый раз скрипт скачает Node.js и Juice Shop (~170 МБ) и распакует. Потом сам откроется браузер.</li>
   </ol>
   <p>Чёрное окно будет выглядеть примерно так:</p>
   <div class="term"><span class="dim">========================================</span>
   AQL QA - OWASP Juice Shop 20.4.0
 <span class="dim">========================================</span>
-<span class="st">[1/4] Проверяю компьютер</span>
-      Node.js v24.11.0 - ок
+<span class="st">[1/4] Готовлю Node.js</span>
+      Скачиваю Node.js 24.22.3, около 35 МБ, только в первый раз
+      Node.js v24.22.3 - ок
 <span class="st">[2/4] Скачиваю Juice Shop, около 135 МБ, только в первый раз</span>
       Скачано и проверено - ок
 <span class="st">[3/4] Распаковываю, это может занять пару минут</span>
-      Установлено в C:\Users\Aruzhan\aql-juice-shop\20.4.0-node24
+      Установлено в C:\aql-juice-shop\js-20.4.0
 <span class="st">[4/4] Запускаю Juice Shop</span>
   <span class="ok">ПОКА ЭТО ОКНО ОТКРЫТО - JUICE SHOP РАБОТАЕТ.</span></div>
   <div class="box green">
@@ -199,32 +197,25 @@
 <!-- MAC -->
 <div class="page">
   <h2>Установка на Mac</h2>
-  <p>Нужно: Mac на чипе <b>M1, M2, M3 или M4</b>, около 1 ГБ места, интернет на первый запуск.</p>
-  <div class="box">
-    <span class="t">Как узнать, какой у тебя Mac</span>
-    <p>Меню с яблоком слева сверху → <b>Об этом Mac</b>. Написано «Чип Apple M…» — подходит. Написано
-      «Процессор Intel» — готовой сборки нет, используй онлайн-версию <a href="https://demo.owasp-juice.shop">demo.owasp-juice.shop</a>
-      (см. стр. 11).</p>
-  </div>
+  <p>Нужно: <b>любой Mac</b> — на чипе M1–M4 или на Intel, около 1 ГБ места, интернет на первый запуск. <b>Больше ничего ставить не надо</b> — скрипт сам скачает всё нужное в папку <code>aql-juice-shop</code> в твоей домашней папке.</p>
   <ol class="steps">
-    <li><b>Поставь Node.js.</b> Открой <a href="https://nodejs.org">nodejs.org</a>, нажми кнопку <b>LTS</b>,
-      открой скачанный <code>.pkg</code> и жми <b>Продолжить</b> до конца. Попросит пароль от Mac — это нормально.</li>
     <li><b>Открой Терминал.</b> Нажми <code>⌘ + пробел</code>, набери «Терминал», нажми Enter.</li>
     <li><b>Вставь одну строку и нажми Enter:</b>
       <div class="term" style="white-space:pre-wrap">bash &lt;(curl -fsSL https://raw.githubusercontent.com/PolyAtomicIon/aql-sandbox/main/start-mac.command)</div>
       Копируй точно, со всеми скобками. Удобнее всего — из README на GitHub, там есть кнопка «копировать».</li>
-    <li><b>Жди.</b> Первый раз скрипт скачает Juice Shop (~140 МБ). Потом сам откроется браузер.</li>
+    <li><b>Жди.</b> Первый раз скрипт скачает Node.js и Juice Shop (~190 МБ, на Intel-Mac запуск дольше). Потом сам откроется браузер.</li>
   </ol>
   <div class="term"><span class="dim">========================================</span>
   AQL QA · OWASP Juice Shop 20.4.0
 <span class="dim">========================================</span>
 <span class="st">▶ Проверяю компьютер</span>
 <span class="ok">✓ Mac на Apple Silicon (M1/M2/M3/M4)</span>
-<span class="ok">✓ Node.js v24.18.0</span>
+<span class="st">▶ Скачиваю Node.js 24.22.3 (~50 МБ, один раз)</span>
+<span class="ok">✓ Node.js v24.22.3</span>
 <span class="st">▶ Скачиваю Juice Shop (~140 МБ, один раз)</span>
 <span class="ok">✓ Скачано и проверено</span>
 <span class="st">▶ Распаковываю (до минуты)</span>
-<span class="ok">✓ Установлено в /Users/aruzhan/aql-juice-shop/…</span>
+<span class="ok">✓ Установлено в /Users/aruzhan/aql-juice-shop/juice-shop-20.4.0-arm64</span>
 <span class="st">▶ Запускаю Juice Shop</span>
 Пока это окно открыто — Juice Shop работает.</div>
   <p><b>Второй способ</b> (если не любишь Терминал): скачай комплект через <b>Code → Download ZIP</b>,
@@ -366,11 +357,11 @@
 
   <div class="qa"><div class="q">Это вирус? Это взлом?</div><p>Нет. Juice Shop — официальный учебный проект OWASP. Он «дырявый» нарочно, но дыры только внутри него самого. Скрипт скачивает его с официальной страницы на GitHub и проверяет контрольную сумму.</p></div>
   <div class="qa"><div class="q">Антивирус ругается или удалил файлы.</div><p>Внутри Juice Shop есть примеры «вредных» строк для заданий — некоторые антивирусы на них реагируют. Это ложная тревога. Не отключай антивирус сам — напиши лиду.</p></div>
-  <div class="qa"><div class="q">«node не является внутренней или внешней командой» / «command not found: node».</div><p>Node.js не установлен или установлен только что. Поставь (шаг 1), <b>закрой все окна</b> и запусти снова. Не помогло — перезагрузи компьютер.</p></div>
-  <div class="qa"><div class="q">«Нужен Node.js версии 22, 24 или 26».</div><p>Стоит старый Node.js. Скачай LTS с nodejs.org и установи поверх — старая версия заменится.</p></div>
+  <div class="qa"><div class="q">Нужно ли ставить Node.js?</div><p>Нет. Скрипт скачивает свою копию Node.js в папку Juice Shop и пользуется только ей. Если Node.js у тебя уже стоит — не мешает.</p></div>
   <div class="qa"><div class="q">Windows: «Windows защитила ваш компьютер».</div><p><b>Подробнее</b> → <b>Выполнить в любом случае</b>.</p></div>
   <div class="qa"><div class="q">Mac: «не удаётся проверить разработчика».</div><p>Используй способ с Терминалом (стр. 5) — там этого окна нет. Или: Системные настройки → Конфиденциальность и безопасность → «Всё равно открыть».</p></div>
-  <div class="qa"><div class="q">У меня Mac на Intel / слабый ноутбук / ничего не ставится.</div><p>Онлайн-версия: <a href="https://demo.owasp-juice.shop">demo.owasp-juice.shop</a> — тот же магазин без установки. Минус: она общая для всех в интернете и иногда перезапускается, прогресс может пропасть.</p></div>
+  <div class="qa"><div class="q">У меня Mac на Intel.</div><p>Работает, тот же способ. Первый запуск чуть дольше.</p></div>
+  <div class="qa"><div class="q">Совсем ничего не получается / чужой или слабый компьютер.</div><p>Онлайн-версия: <a href="https://demo.owasp-juice.shop">demo.owasp-juice.shop</a> — тот же магазин без установки. Минус: она общая для всех в интернете и иногда перезапускается, прогресс может пропасть.</p></div>
   <div class="qa"><div class="q">Окно открылось и сразу закрылось.</div><p>Windows: открой папку с файлом, в адресной строке папки напиши <code>cmd</code> и нажми Enter. В окне набери <code>start-windows.bat</code> и Enter — теперь ошибка останется на экране. Сделай скриншот.</p></div>
   <div class="qa"><div class="q">«Порт 3000 занят».</div><p>Juice Shop уже работает в другом окне (тогда скрипт просто откроет браузер) — или порт держит другая программа, например твой проект на React. Закрой её или перезагрузи компьютер.</p></div>
   <div class="qa"><div class="q">Браузер не открылся сам.</div><p>Набери вручную: <code>http://localhost:3000</code>.</p></div>
@@ -382,7 +373,7 @@
   <div class="qa"><div class="q">Пропал прогресс.</div><p>Ты зашёл другим браузером, в режиме инкогнито или почистил cookies. Прогресс живёт в браузере. Вернись в свой обычный браузер.</p></div>
   <div class="qa"><div class="q">Хочу начать с нуля.</div><p>Открой Juice Shop в окне инкогнито — это чистый лист. Обычный браузер сохранит старый прогресс.</p></div>
   <div class="qa"><div class="q">Как выключить?</div><p>Закрой чёрное окно (или нажми в нём <code>Ctrl + C</code>).</p></div>
-  <div class="qa"><div class="q">Как удалить совсем?</div><p>Удали папку <code>aql-juice-shop</code> в своей домашней папке: Windows — <code>C:\Users\ТвоёИмя\aql-juice-shop</code>, Mac — <code>~/aql-juice-shop</code>. Node.js можно оставить, он пригодится.</p></div>
+  <div class="qa"><div class="q">Как удалить совсем?</div><p>Удали папку <code>aql-juice-shop</code>: на Windows это <code>C:\aql-juice-shop</code> (если её нет — <code>C:\Users\ТвоёИмя\aql-juice-shop</code>), на Mac — <code>~/aql-juice-shop</code>. Больше скрипт ничего не ставит.</p></div>
   <div class="qa"><div class="q">Нужен ли интернет?</div><p>Для Juice Shop — только в первый раз. Учебным сайтам — всегда.</p></div>
   <div class="qa"><div class="q">Можно ли так же «проверить» портал AQL?</div><p><b>Нет.</b> Портал — живая система с данными людей. Случайно нашёл баг — опиши и отправь лиду, не копай глубже.</p></div>
   <div class="qa"><div class="q">Можно ли поставить на телефон?</div><p>Нет, только компьютер. На телефоне можно открывать учебные сайты.</p></div>
