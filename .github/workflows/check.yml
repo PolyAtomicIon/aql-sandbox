@@ -65,11 +65,16 @@ jobs:
           if ($solved -notcontains 'Deprecated Interface') { Fail 'XML не разобрался (libxmljs2)' upload.txt }
           Write-Output "::notice title=Windows${{ matrix.label }}::Засчитано: $($solved -join ', ')"
 
-          $again = Start-Process cmd.exe -ArgumentList '/c', 'start-windows.bat < NUL' -NoNewWindow -PassThru -Wait `
+          # Не Start-Process -Wait: он ждёт и браузер, который открывает скрипт.
+          $again = Start-Process cmd.exe -ArgumentList '/c', 'start-windows.bat < NUL' -NoNewWindow -PassThru `
             -RedirectStandardOutput again.txt -RedirectStandardError again-err.txt
+          for ($k = 0; $k -lt 60 -and -not $again.HasExited; $k++) {
+            if (Select-String -Path again.txt -Pattern 'уже запущен' -Encoding utf8 -Quiet -ErrorAction SilentlyContinue) { break }
+            Start-Sleep -Seconds 1
+          }
           Get-Content again.txt -Encoding utf8
           if (-not (Select-String -Path again.txt -Pattern 'уже запущен' -Encoding utf8 -Quiet)) { Fail 'Повторный запуск не узнал работающий Juice Shop' again.txt }
-          Write-Output "::notice title=Windows${{ matrix.label }}::Повторный запуск открыл браузер, код $($again.ExitCode)"
+          Write-Output "::notice title=Windows${{ matrix.label }}::Повторный запуск узнал работающий Juice Shop"
           exit 0
 
   mac:
