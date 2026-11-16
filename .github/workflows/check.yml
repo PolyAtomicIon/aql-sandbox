@@ -48,7 +48,12 @@ jobs:
           Write-Output "----- stderr -----"; Get-Content err.txt -Encoding utf8 -ErrorAction SilentlyContinue
           $dir = if ($env:AQL_JUICE_DIR) { $env:AQL_JUICE_DIR } else { 'C:\aql-juice-shop' }
           Write-Output "----- $dir -----"; Get-ChildItem $dir -ErrorAction SilentlyContinue | Format-Table Name, Length -AutoSize | Out-String | Write-Output
-          if (-not $ok) { Write-Output "::error::Juice Shop не поднялся"; exit 1 }
+          if (-not $ok) {
+            $dump = ((Get-Content out.txt -Encoding utf8) + '--- stderr ---' + (Get-Content err.txt -Encoding utf8 -ErrorAction SilentlyContinue)) -join '%0A'
+            if ($dump.Length -gt 3500) { $dump = $dump.Substring($dump.Length - 3500) }
+            Write-Output "::error title=Windows${{ matrix.label }}: вывод start-windows.bat::$dump"
+            exit 1
+          }
           Write-Output "::notice title=Windows${{ matrix.label }}::Juice Shop поднялся за $i с"
 
       - name: Juice Shop засчитывает задания
