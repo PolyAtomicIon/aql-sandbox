@@ -76,7 +76,7 @@ if /i not "%EXPECTED%"=="%ACTUAL%" goto :bad_checksum
 echo       Скачано и проверено - ок
 
 echo.
-echo [3/4] Распаковываю, это может занять пару минут
+echo [3/4] Распаковываю, это может занять до 5 минут - окно НЕ закрывай
 if exist "%UNPACK%" rmdir /s /q "%UNPACK%"
 mkdir "%UNPACK%"
 tar -xf "%ZIP%" -C "%UNPACK%"
