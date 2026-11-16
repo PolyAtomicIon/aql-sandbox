@@ -1,0 +1,110 @@
+# Проверяет, что скрипты запуска работают на чистых машинах: Windows, Mac на
+# Apple Silicon и Mac на Intel. Ничего заранее не ставим — как у ученика.
+# Раз в неделю прогоняется сама: ловит, если поменялись ссылки на релизы.
+name: Проверка скриптов
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'
+
+jobs:
+  windows:
+    name: Windows${{ matrix.label }}
+    runs-on: windows-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: ''
+            dir: ''
+          - label: ' · кириллица и пробел в пути'
+            dir: 'C:\Users\runneradmin\Айгерим Тест\aql juice'
+    env:
+      AQL_JUICE_DIR: ${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Первый запуск start-windows.bat
+        shell: pwsh
+        run: |
+          Start-Process cmd.exe -ArgumentList '/c', 'start-windows.bat < NUL' -NoNewWindow `
+            -RedirectStandardOutput out.txt -RedirectStandardError err.txt
+          $ok = $false
+          for ($i = 0; $i -lt 600; $i++) {
+            try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://localhost:3000/rest/admin/application-version | Out-Null; $ok = $true; break }
+            catch { Start-Sleep -Seconds 1 }
+          }
+          Get-Content out.txt -Encoding utf8
+          if (-not $ok) { Get-Content err.txt -Encoding utf8; Write-Output "::error::Juice Shop не поднялся за 10 минут"; exit 1 }
+          Write-Output "::notice title=Windows${{ matrix.label }}::Juice Shop поднялся за $i с"
+
+      - name: Juice Shop засчитывает задания
+        shell: pwsh
+        run: |
+          try { Invoke-WebRequest -UseBasicParsing http://localhost:3000/rest/qwertz | Out-Null } catch {}
+          Set-Content -Path t.xml -Value '<?xml version="1.0"?><complaint><text>hi</text></complaint>'
+          curl.exe -s -o NUL -F "file=@t.xml;type=text/xml" http://localhost:3000/file-upload
+          Start-Sleep -Seconds 2
+          $solved = (Invoke-RestMethod http://localhost:3000/api/Challenges).data | Where-Object solved | ForEach-Object name
+          Write-Output "Решено: $($solved -join ', ')"
+          if ($solved -notcontains 'Error Handling') { Write-Output "::error::Не засчиталось Error Handling"; exit 1 }
+          if ($solved -notcontains 'Deprecated Interface') { Write-Output "::error::XML не разобрался (libxmljs2)"; exit 1 }
+          Write-Output "::notice title=Windows${{ matrix.label }}::Засчитано: $($solved -join ', ')"
+
+      - name: Повторный запуск видит работающий Juice Shop
+        shell: pwsh
+        run: |
+          cmd.exe /c "start-windows.bat < NUL" > again.txt 2>&1
+          Get-Content again.txt -Encoding utf8
+          if (-not (Select-String -Path again.txt -Pattern 'уже запущен' -Encoding utf8 -Quiet)) { Write-Output "::error::Повторный запуск не узнал работающий Juice Shop"; exit 1 }
+
+  mac:
+    name: Mac · ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            label: Apple Silicon
+          - os: macos-15-intel
+            label: Intel
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Первый запуск start-mac.command
+        run: |
+          mkdir -p fakebin && printf '#!/bin/sh\necho "[open] $*"\n' > fakebin/open && chmod +x fakebin/open
+          uname -m
+          PATH="$PWD/fakebin:/usr/bin:/bin:/usr/sbin:/sbin" nohup bash start-mac.command </dev/null > out.txt 2>&1 &
+          for i in $(seq 1 600); do
+            curl -fs http://localhost:3000/rest/admin/application-version >/dev/null && break
+            sleep 1
+          done
+          cat out.txt
+          curl -fs http://localhost:3000/rest/admin/application-version || { echo "::error::Juice Shop не поднялся"; exit 1; }
+          echo "::notice title=Mac ${{ matrix.label }}::Juice Shop поднялся за $i с"
+
+      - name: Juice Shop засчитывает задания
+        run: |
+          curl -s -o /dev/null http://localhost:3000/rest/qwertz
+          printf '<?xml version="1.0"?><complaint><text>hi</text></complaint>' > t.xml
+          curl -s -o /dev/null -F "file=@t.xml;type=text/xml" http://localhost:3000/file-upload
+          sleep 2
+          solved="$(curl -s http://localhost:3000/api/Challenges | python3 -c 'import json,sys; print(", ".join(c["name"] for c in json.load(sys.stdin)["data"] if c["solved"]))')"
+          echo "Решено: $solved"
+          [[ "$solved" == *"Error Handling"* ]] || { echo "::error::Не засчиталось Error Handling"; exit 1; }
+          [[ "$solved" == *"Deprecated Interface"* ]] || { echo "::error::XML не разобрался (libxmljs2)"; exit 1; }
+          echo "::notice title=Mac ${{ matrix.label }}::Засчитано: $solved"
+
+      - name: Повторный запуск видит работающий Juice Shop
+        run: |
+          PATH="$PWD/fakebin:/usr/bin:/bin:/usr/sbin:/sbin" bash start-mac.command </dev/null > again.txt 2>&1
+          cat again.txt
+          grep -q "уже запущен" again.txt

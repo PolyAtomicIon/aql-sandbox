@@ -4,43 +4,64 @@ setlocal EnableExtensions
 title AQL QA - OWASP Juice Shop
 
 rem AQL QA: запуск OWASP Juice Shop на Windows 10/11.
-rem Двойной клик по файлу. Первый запуск качает ~135 МБ, дальше работает без интернета.
+rem Двойной клик по файлу. Первый запуск качает ~170 МБ, дальше работает без интернета.
+rem Ничего ставить заранее не нужно: скрипт кладёт рядом свою копию Node.js.
 
 set "JUICE_VERSION=20.4.0"
-set "INSTALL_DIR=%USERPROFILE%\aql-juice-shop"
+set "NODE_VERSION=24.22.3"
+rem Короткий путь без кириллицы и пробелов: C:\aql-juice-shop. Имя пользователя
+rem кириллицей и длинные пути - частые причины поломок на Windows.
+set "INSTALL_DIR=%SystemDrive%\aql-juice-shop"
+if defined AQL_JUICE_DIR set "INSTALL_DIR=%AQL_JUICE_DIR%"
 set "PORT=3000"
 set "URL=http://localhost:%PORT%"
+
 
 echo ========================================
 echo   AQL QA - OWASP Juice Shop %JUICE_VERSION%
 echo ========================================
 echo.
-echo [1/4] Проверяю компьютер
-
-where node >nul 2>nul
-if errorlevel 1 goto :no_node
-
-set "NODE_MAJOR="
-for /f %%v in ('node -p "parseInt(process.versions.node)"') do set "NODE_MAJOR=%%v"
-if "%NODE_MAJOR%"=="22" goto :node_ok
-if "%NODE_MAJOR%"=="24" goto :node_ok
-if "%NODE_MAJOR%"=="26" goto :node_ok
-goto :bad_node
-
-:node_ok
-for /f %%v in ('node -v') do echo       Node.js %%v - ок
-
-set "BUILD=juice-shop-%JUICE_VERSION%_node%NODE_MAJOR%_win32_x64"
-set "APP_DIR=%INSTALL_DIR%\%JUICE_VERSION%-node%NODE_MAJOR%"
+echo [1/4] Готовлю Node.js
+if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%" 2>nul
+if not exist "%INSTALL_DIR%" set "INSTALL_DIR=%USERPROFILE%\aql-juice-shop"
+if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%" 2>nul
+if not exist "%INSTALL_DIR%" goto :no_folder
+set "NODE_ZIP=node-v%NODE_VERSION%-win-x64.zip"
+set "NODE_DIR=%INSTALL_DIR%\node-v%NODE_VERSION%-win-x64"
+set "NODE_EXE=%NODE_DIR%\node.exe"
+set "BUILD=juice-shop-%JUICE_VERSION%_node24_win32_x64"
+set "APP_DIR=%INSTALL_DIR%\js-%JUICE_VERSION%"
 set "RELEASE=https://github.com/juice-shop/juice-shop/releases/download/v%JUICE_VERSION%"
 set "ZIP=%INSTALL_DIR%\%BUILD%.zip"
 set "UNPACK=%INSTALL_DIR%\unpack"
+if exist "%NODE_EXE%" goto :node_ready
+
+echo       Скачиваю Node.js %NODE_VERSION%, около 35 МБ, только в первый раз
+curl.exe -fL --retry 3 -o "%INSTALL_DIR%\%NODE_ZIP%" "https://nodejs.org/dist/v%NODE_VERSION%/%NODE_ZIP%"
+if errorlevel 1 goto :download_failed
+curl.exe -fsSL --retry 3 -o "%INSTALL_DIR%\SHASUMS256.txt" "https://nodejs.org/dist/v%NODE_VERSION%/SHASUMS256.txt"
+if errorlevel 1 goto :download_failed
+set "EXPECTED="
+set "ACTUAL="
+for /f "usebackq tokens=1,2" %%a in ("%INSTALL_DIR%\SHASUMS256.txt") do if "%%b"=="%NODE_ZIP%" set "EXPECTED=%%a"
+for /f %%h in ('powershell -NoProfile -Command "(Get-FileHash -Algorithm SHA256 -LiteralPath '%INSTALL_DIR%\%NODE_ZIP%').Hash.ToLower()"') do set "ACTUAL=%%h"
+del /q "%INSTALL_DIR%\SHASUMS256.txt"
+if not defined EXPECTED goto :bad_node_checksum
+if /i not "%EXPECTED%"=="%ACTUAL%" goto :bad_node_checksum
+tar -xf "%INSTALL_DIR%\%NODE_ZIP%" -C "%INSTALL_DIR%"
+if errorlevel 1 powershell -NoProfile -Command "Expand-Archive -LiteralPath '%INSTALL_DIR%\%NODE_ZIP%' -DestinationPath '%INSTALL_DIR%' -Force"
+del /q "%INSTALL_DIR%\%NODE_ZIP%"
+if not exist "%NODE_EXE%" goto :unpack_failed
+
+:node_ready
+"%NODE_EXE%" -v >nul 2>nul
+if errorlevel 1 goto :node_broken
+for /f %%v in ('call "%NODE_EXE%" -v') do echo       Node.js %%v - ок
 
 if exist "%APP_DIR%\package.json" goto :installed
 
 echo.
 echo [2/4] Скачиваю Juice Shop, около 135 МБ, только в первый раз
-if not exist "%INSTALL_DIR%" mkdir "%INSTALL_DIR%"
 curl.exe -fL --retry 3 -o "%ZIP%" "%RELEASE%/%BUILD%.zip"
 if errorlevel 1 goto :download_failed
 curl.exe -fsSL --retry 3 -o "%ZIP%.md5" "%RELEASE%/%BUILD%.zip.md5"
@@ -84,7 +105,7 @@ if errorlevel 1 goto :port_busy
 echo.
 echo Juice Shop уже запущен в другом окне - открываю браузер
 start "" "%URL%"
-timeout /t 3 >nul
+timeout /t 3 >nul 2>nul
 exit /b 0
 
 :port_free
@@ -97,25 +118,32 @@ echo   Через 10-20 секунд сам откроется браузер: %
 echo.
 start "" /b powershell -NoProfile -WindowStyle Hidden -Command "for ($i = 0; $i -lt 120; $i++) { try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 '%URL%/rest/admin/application-version' | Out-Null; Start-Process '%URL%'; break } catch { Start-Sleep -Seconds 1 } }"
 cd /d "%APP_DIR%"
-call npm start
+"%NODE_EXE%" build\app
 echo.
 echo Juice Shop остановлен.
 pause
 exit /b 0
 
-:no_node
-set "MSG1=Не найден Node.js."
-set "MSG2=Скачай установщик LTS с https://nodejs.org , установи его - Далее, Далее, Готово - и запусти этот файл ещё раз."
+:no_folder
+set "MSG1=Не получилось создать папку %INSTALL_DIR%."
+set "MSG2=Пришли скриншот лиду."
 goto :fail
 
-:bad_node
-set "MSG1=Нужен Node.js версии 22, 24 или 26, а у тебя другая."
-set "MSG2=Скачай LTS с https://nodejs.org и установи поверх - старая версия заменится."
+:node_broken
+if exist "%NODE_DIR%" rmdir /s /q "%NODE_DIR%"
+set "MSG1=Node.js не запускается."
+set "MSG2=Запусти файл ещё раз. Повторится - пришли скриншот лиду."
 goto :fail
 
 :download_failed
 set "MSG1=Не скачалось."
 set "MSG2=Проверь интернет и запусти файл ещё раз."
+goto :fail
+
+:bad_node_checksum
+if exist "%INSTALL_DIR%\%NODE_ZIP%" del /q "%INSTALL_DIR%\%NODE_ZIP%"
+set "MSG1=Node.js скачался битым - контрольная сумма не совпала."
+set "MSG2=Просто запусти файл ещё раз."
 goto :fail
 
 :bad_checksum
