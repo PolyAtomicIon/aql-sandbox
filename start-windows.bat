@@ -44,7 +44,7 @@ if errorlevel 1 goto :download_failed
 set "EXPECTED="
 set "ACTUAL="
 for /f "usebackq tokens=1,2" %%a in ("%INSTALL_DIR%\SHASUMS256.txt") do if "%%b"=="%NODE_ZIP%" set "EXPECTED=%%a"
-for /f %%h in ('powershell -NoProfile -Command "(Get-FileHash -Algorithm SHA256 -LiteralPath '%INSTALL_DIR%\%NODE_ZIP%').Hash.ToLower()"') do set "ACTUAL=%%h"
+call :hash "%INSTALL_DIR%\%NODE_ZIP%" SHA256
 del /q "%INSTALL_DIR%\SHASUMS256.txt"
 if not defined EXPECTED goto :bad_node_checksum
 if /i not "%EXPECTED%"=="%ACTUAL%" goto :bad_node_checksum
@@ -70,7 +70,7 @@ if errorlevel 1 goto :download_failed
 set "EXPECTED="
 set "ACTUAL="
 for /f "usebackq tokens=1" %%h in ("%ZIP%.md5") do set "EXPECTED=%%h"
-for /f %%h in ('powershell -NoProfile -Command "(Get-FileHash -Algorithm MD5 -LiteralPath '%ZIP%').Hash.ToLower()"') do set "ACTUAL=%%h"
+call :hash "%ZIP%" MD5
 if not defined EXPECTED goto :bad_checksum
 if /i not "%EXPECTED%"=="%ACTUAL%" goto :bad_checksum
 echo       Скачано и проверено - ок
@@ -122,6 +122,14 @@ cd /d "%APP_DIR%"
 echo.
 echo Juice Shop остановлен.
 pause
+exit /b 0
+
+:hash
+rem Контрольная сумма через certutil: он есть в любой Windows и не зависит от PowerShell.
+rem Вторая строка его вывода - сама сумма; в старых Windows она с пробелами.
+set "ACTUAL="
+for /f "skip=1 delims=" %%h in ('certutil -hashfile "%~1" %2') do if not defined ACTUAL set "ACTUAL=%%h"
+set "ACTUAL=%ACTUAL: =%"
 exit /b 0
 
 :no_folder
