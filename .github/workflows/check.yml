@@ -29,52 +29,48 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Первый запуск start-windows.bat
+      # Всё в одном шаге: на Windows фоновый процесс может не пережить границу шагов.
+      - name: Запуск, задания, повторный запуск
         shell: pwsh
         run: |
-          $p = Start-Process cmd.exe -ArgumentList '/c', 'start-windows.bat < NUL' -NoNewWindow -PassThru `
-            -RedirectStandardOutput out.txt -RedirectStandardError err.txt
-          $ok = $false; $shown = 0
-          for ($i = 0; $i -lt 900; $i++) {
-            try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://localhost:3000/rest/admin/application-version | Out-Null; $ok = $true; break } catch {}
-            if ($i % 15 -eq 0 -and (Test-Path out.txt)) {
-              $lines = @(Get-Content out.txt -Encoding utf8)
-              if ($lines.Count -gt $shown) { $lines[$shown..($lines.Count - 1)] | ForEach-Object { Write-Output "  [$i s] $_" }; $shown = $lines.Count }
-            }
-            if ($p.HasExited) { Write-Output "start-windows.bat завершился с кодом $($p.ExitCode) до запуска Juice Shop"; break }
-            Start-Sleep -Seconds 1
-          }
-          Write-Output "----- весь вывод -----"; Get-Content out.txt -Encoding utf8
-          Write-Output "----- stderr -----"; Get-Content err.txt -Encoding utf8 -ErrorAction SilentlyContinue
-          $dir = if ($env:AQL_JUICE_DIR) { $env:AQL_JUICE_DIR } else { 'C:\aql-juice-shop' }
-          Write-Output "----- $dir -----"; Get-ChildItem $dir -ErrorAction SilentlyContinue | Format-Table Name, Length -AutoSize | Out-String | Write-Output
-          if (-not $ok) {
-            $dump = ((Get-Content out.txt -Encoding utf8) + '--- stderr ---' + (Get-Content err.txt -Encoding utf8 -ErrorAction SilentlyContinue)) -join '%0A'
-            if ($dump.Length -gt 3500) { $dump = $dump.Substring($dump.Length - 3500) }
-            Write-Output "::error title=Windows${{ matrix.label }}: вывод start-windows.bat::$dump"
+          $ErrorActionPreference = 'Continue'
+          function Dump([string]$file) { if (Test-Path $file) { (Get-Content $file -Encoding utf8) -join '%0A' } else { "($file нет)" } }
+          function Fail([string]$why, [string]$file) {
+            $text = Dump $file
+            if ($text.Length -gt 3500) { $text = $text.Substring($text.Length - 3500) }
+            Write-Output "::error title=Windows${{ matrix.label }}: $why::$text"
             exit 1
           }
+
+          $p = Start-Process cmd.exe -ArgumentList '/c', 'start-windows.bat < NUL' -NoNewWindow -PassThru `
+            -RedirectStandardOutput out.txt -RedirectStandardError err.txt
+          $ok = $false
+          for ($i = 0; $i -lt 900; $i++) {
+            try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 http://localhost:3000/rest/admin/application-version | Out-Null; $ok = $true; break } catch {}
+            if ($p.HasExited) { break }
+            Start-Sleep -Seconds 1
+          }
+          Get-Content out.txt -Encoding utf8
+          if (-not $ok) { Get-Content err.txt -Encoding utf8 -ErrorAction SilentlyContinue | Add-Content out.txt; Fail 'Juice Shop не поднялся' out.txt }
           Write-Output "::notice title=Windows${{ matrix.label }}::Juice Shop поднялся за $i с"
 
-      - name: Juice Shop засчитывает задания
-        shell: pwsh
-        run: |
           try { Invoke-WebRequest -UseBasicParsing http://localhost:3000/rest/qwertz | Out-Null } catch {}
           Set-Content -Path t.xml -Value '<?xml version="1.0"?><complaint><text>hi</text></complaint>'
-          curl.exe -s -o NUL -F "file=@t.xml;type=text/xml" http://localhost:3000/file-upload
+          & curl.exe -s -o upload.txt -F "file=@t.xml;type=text/xml" http://localhost:3000/file-upload
           Start-Sleep -Seconds 2
-          $solved = (Invoke-RestMethod http://localhost:3000/api/Challenges).data | Where-Object solved | ForEach-Object name
+          try { $solved = (Invoke-RestMethod http://localhost:3000/api/Challenges).data | Where-Object solved | ForEach-Object name }
+          catch { $_ | Out-String | Set-Content err2.txt; Fail 'API заданий не ответил' err2.txt }
           Write-Output "Решено: $($solved -join ', ')"
-          if ($solved -notcontains 'Error Handling') { Write-Output "::error::Не засчиталось Error Handling"; exit 1 }
-          if ($solved -notcontains 'Deprecated Interface') { Write-Output "::error::XML не разобрался (libxmljs2)"; exit 1 }
+          if ($solved -notcontains 'Error Handling') { Fail 'Не засчиталось Error Handling' out.txt }
+          if ($solved -notcontains 'Deprecated Interface') { Fail 'XML не разобрался (libxmljs2)' upload.txt }
           Write-Output "::notice title=Windows${{ matrix.label }}::Засчитано: $($solved -join ', ')"
 
-      - name: Повторный запуск видит работающий Juice Shop
-        shell: pwsh
-        run: |
-          cmd.exe /c "start-windows.bat < NUL" > again.txt 2>&1
+          $again = Start-Process cmd.exe -ArgumentList '/c', 'start-windows.bat < NUL' -NoNewWindow -PassThru -Wait `
+            -RedirectStandardOutput again.txt -RedirectStandardError again-err.txt
           Get-Content again.txt -Encoding utf8
-          if (-not (Select-String -Path again.txt -Pattern 'уже запущен' -Encoding utf8 -Quiet)) { Write-Output "::error::Повторный запуск не узнал работающий Juice Shop"; exit 1 }
+          if (-not (Select-String -Path again.txt -Pattern 'уже запущен' -Encoding utf8 -Quiet)) { Fail 'Повторный запуск не узнал работающий Juice Shop' again.txt }
+          Write-Output "::notice title=Windows${{ matrix.label }}::Повторный запуск открыл браузер, код $($again.ExitCode)"
+          exit 0
 
   mac:
     name: Mac · ${{ matrix.label }}
